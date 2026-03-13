@@ -23,7 +23,7 @@
 ## Installation
 
 ```bash
-git clone https://github.com/yourname/whisper-local-stt.git
+git clone https://github.com/gezzzi/whisper-local-stt.git
 cd whisper-local-stt
 python -m venv .venv
 .venv\Scripts\activate
