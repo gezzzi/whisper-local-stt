@@ -1,0 +1,30 @@
+[project]
+name = "whisper-local-stt"
+version = "0.1.0"
+description = "Local Japanese speech-to-text voice input tool using faster-whisper"
+requires-python = ">=3.11"
+dependencies = [
+    "faster-whisper>=1.1.0",
+    "sounddevice>=0.5.1",
+    "numpy>=1.26,<2.0",
+
+    "pystray>=0.19.5",
+    "Pillow>=10.0",
+    "pywin32>=306",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.4.0",
+]
+
+[project.scripts]
+whisper-stt = "whisper_stt.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]

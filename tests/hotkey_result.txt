@@ -1,0 +1,4 @@
+Started at 03:59:56
+Polling keys for 15 seconds... press Ctrl+Shift+Space
+NO KEYS DETECTED - GetAsyncKeyState returned 0 for all keys
+Ended at 04:00:11
