@@ -15,7 +15,7 @@ class Config:
     model_size: str = "large-v3-turbo"
     device: str = "cuda"
     compute_type: str = "float16"
-    beam_size: int = 5
+    beam_size: int = 3
     language: str = "ja"
     vad_filter: bool = True
     condition_on_previous_text: bool = False
