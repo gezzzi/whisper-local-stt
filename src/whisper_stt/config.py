@@ -18,7 +18,7 @@ class Config:
     beam_size: int = 8
     language: str = "ja"
     vad_filter: bool = True
-    condition_on_previous_text: bool = False
+    condition_on_previous_text: bool = True
     initial_prompt: str = ""
     hotwords: str = ""
 
@@ -29,6 +29,7 @@ class Config:
     # Behavior
     play_sound: bool = True
     preload_model: bool = True
+    auto_start: bool = False
 
 
 # Fields exposed in the settings GUI (order matters for display)

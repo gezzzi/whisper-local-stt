@@ -82,6 +82,10 @@ _FIELD_META: dict[str, dict] = {
         "label": "VAD Filter",
         "widget": "check",
     },
+    "auto_start": {
+        "label": "Auto Start",
+        "widget": "check",
+    },
 }
 
 # Group definitions
@@ -89,7 +93,7 @@ _GROUPS: list[tuple[str, list[str]]] = [
     ("Hotkey", ["hotkey", "mode"]),
     ("Whisper", ["model_size", "language", "beam_size", "initial_prompt", "hotwords"]),
     ("Performance", ["device", "compute_type"]),
-    ("Behavior", ["play_sound", "vad_filter"]),
+    ("Behavior", ["play_sound", "vad_filter", "auto_start"]),
 ]
 
 
@@ -148,8 +152,8 @@ def _apply_dark_theme(root: tk.Tk) -> None:
     style.map("TCombobox",
               fieldbackground=[("readonly", _BG_INPUT)],
               foreground=[("readonly", _FG)],
-              selectbackground=[("readonly", _FG_ACCENT)],
-              selectforeground=[("readonly", "#ffffff")])
+              selectbackground=[("readonly", _BG_INPUT)],
+              selectforeground=[("readonly", _FG)])
     root.option_add("*TCombobox*Listbox.background", _BG_INPUT)
     root.option_add("*TCombobox*Listbox.foreground", _FG)
     root.option_add("*TCombobox*Listbox.font", _input_font)
@@ -247,6 +251,12 @@ class SettingsWindow:
         self._config_path = config_path
         self._on_save = on_save
         self._vars: dict[str, tk.Variable] = {}
+
+        # Detect actual auto-start state from startup folder
+        import os
+        startup_bat = Path(os.environ.get("APPDATA", "")) / \
+            "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup" / "whisper-stt.bat"
+        self._config = dataclasses.replace(config, auto_start=startup_bat.exists())
 
         _apply_dark_theme(root)
         self._build_ui()
@@ -404,8 +414,32 @@ class SettingsWindow:
         save_config(new_config, self._config_path)
         logger.info("Config saved to %s", self._config_path)
 
+        # Handle auto-start
+        self._update_auto_start(new_config.auto_start)
+
         self._on_save(new_config)
         self._root.destroy()
+
+    def _update_auto_start(self, enabled: bool) -> None:
+        import os
+        startup_dir = Path(os.environ.get("APPDATA", "")) / \
+            "Microsoft" / "Windows" / "Start Menu" / "Programs" / "Startup"
+        bat_path = startup_dir / "whisper-stt.bat"
+
+        if enabled:
+            project_root = self._config_path.resolve().parent
+            bat_content = (
+                "@echo off\n"
+                f'cd /d "{project_root}"\n'
+                "call .venv\\Scripts\\activate.bat\n"
+                'start "" pythonw -m whisper_stt\n'
+            )
+            bat_path.write_text(bat_content, encoding="utf-8")
+            logger.info("Auto-start enabled: %s", bat_path)
+        else:
+            if bat_path.exists():
+                bat_path.unlink()
+                logger.info("Auto-start disabled: removed %s", bat_path)
 
 
 def open_settings_window(

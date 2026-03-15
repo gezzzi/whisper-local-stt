@@ -13,3 +13,4 @@ hotkey = "ralt"
 mode = "push_to_talk"
 play_sound = true
 preload_model = true
+auto_start = false
