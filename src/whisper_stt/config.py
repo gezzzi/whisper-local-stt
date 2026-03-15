@@ -15,10 +15,12 @@ class Config:
     model_size: str = "large-v3-turbo"
     device: str = "cuda"
     compute_type: str = "float16"
-    beam_size: int = 3
+    beam_size: int = 8
     language: str = "ja"
     vad_filter: bool = True
     condition_on_previous_text: bool = False
+    initial_prompt: str = ""
+    hotwords: str = ""
 
     # Hotkey
     hotkey: str = "ralt"

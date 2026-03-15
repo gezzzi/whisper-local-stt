@@ -9,7 +9,17 @@ from whisper_stt.app import App
 from whisper_stt.config import load_config
 
 
+def _set_app_id() -> None:
+    """Set Windows AppUserModelID so taskbar uses our icon instead of pythonw's."""
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("whisper-local-stt")
+    except Exception:
+        pass
+
+
 def main() -> None:
+    _set_app_id()
     parser = argparse.ArgumentParser(description="Whisper Local STT")
     parser.add_argument(
         "--config",

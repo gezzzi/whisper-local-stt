@@ -8,6 +8,8 @@ from tkinter import ttk
 from collections.abc import Callable
 from pathlib import Path
 
+from PIL import Image
+
 from whisper_stt.config import Config, save_config
 
 logger = logging.getLogger(__name__)
@@ -64,6 +66,14 @@ _FIELD_META: dict[str, dict] = {
         "values": ["float16", "int8", "float32"],
         "restart": True,
     },
+    "initial_prompt": {
+        "label": "Initial Prompt",
+        "widget": "word_list",
+    },
+    "hotwords": {
+        "label": "Hotwords",
+        "widget": "word_list",
+    },
     "play_sound": {
         "label": "Sound Feedback",
         "widget": "check",
@@ -77,7 +87,7 @@ _FIELD_META: dict[str, dict] = {
 # Group definitions
 _GROUPS: list[tuple[str, list[str]]] = [
     ("Hotkey", ["hotkey", "mode"]),
-    ("Whisper", ["model_size", "language", "beam_size"]),
+    ("Whisper", ["model_size", "language", "beam_size", "initial_prompt", "hotwords"]),
     ("Performance", ["device", "compute_type"]),
     ("Behavior", ["play_sound", "vad_filter"]),
 ]
@@ -193,6 +203,30 @@ def _apply_dark_theme(root: tk.Tk) -> None:
               background=[("active", _FG_ACCENT)],
               foreground=[("active", "#ffffff")])
 
+    # Icon buttons for add/delete (same size images)
+    from PIL import ImageDraw, ImageFont, ImageTk
+    btn_size = 24
+    _icons: dict[str, ImageTk.PhotoImage] = {}
+    for symbol, key in [("\u002B", "add"), ("\u00D7", "del")]:
+        img = Image.new("RGBA", (btn_size, btn_size), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        try:
+            font = ImageFont.truetype("segoeui.ttf", 18)
+        except Exception:
+            font = ImageFont.load_default()
+        bbox = d.textbbox((0, 0), symbol, font=font)
+        tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        x = (btn_size - tw) // 2 - bbox[0]
+        y = (btn_size - th) // 2 - bbox[1]
+        d.text((x, y), symbol, fill=_FG, font=font)
+        _icons[key] = ImageTk.PhotoImage(img)
+    root._btn_icons = _icons  # type: ignore[attr-defined]
+
+    style.configure("Icon.TButton", background=_BG_FRAME,
+                    bordercolor=_BORDER, padding=2)
+    style.map("Icon.TButton",
+              background=[("active", _FG_ACCENT)])
+
     style.configure("Accent.TButton", background=_FG_ACCENT, foreground="#ffffff",
                     bordercolor=_FG_ACCENT, font=("Segoe UI", 11, "bold"),
                     padding=(16, 6))
@@ -221,6 +255,13 @@ class SettingsWindow:
         root = self._root
         root.title("Whisper STT - Settings")
         root.resizable(False, False)
+
+        # Set window icon
+        icon_path = Path(__file__).resolve().parent.parent.parent / "assets" / "icon_256.png"
+        if icon_path.exists():
+            from PIL import ImageTk
+            self._window_icon = ImageTk.PhotoImage(Image.open(icon_path))
+            root.iconphoto(True, self._window_icon)
 
         # Bring to front
         root.lift()
@@ -269,6 +310,64 @@ class SettingsWindow:
                 elif widget_type == "check":
                     var = tk.BooleanVar(value=bool(current_val))
                     ttk.Checkbutton(row, variable=var).pack(side="left")
+
+                elif widget_type == "word_list":
+                    var = tk.StringVar(value=str(current_val))
+                    words = [w for w in str(current_val).split() if w]
+                    icons = self._root._btn_icons  # type: ignore[attr-defined]
+
+                    wl_frame = ttk.Frame(row)
+                    wl_frame.pack(side="left", fill="x", expand=True)
+
+                    # Row 1 (top): Entry + add button
+                    add_row = ttk.Frame(wl_frame)
+                    add_row.pack(fill="x")
+                    add_entry = ttk.Entry(add_row)
+                    add_entry.pack(side="left", fill="x", expand=True)
+
+                    # Row 2 (bottom): Listbox + delete button
+                    list_frame = ttk.Frame(wl_frame)
+                    list_frame.pack(fill="x", pady=(3, 0))
+                    listbox = tk.Listbox(
+                        list_frame, height=3,
+                        bg=_BG_INPUT, fg=_FG, font=("Segoe UI", 10),
+                        selectbackground=_FG_ACCENT, selectforeground="#ffffff",
+                        borderwidth=0, highlightthickness=0,
+                        activestyle="none",
+                    )
+                    listbox.pack(side="left", fill="x", expand=True)
+                    scrollbar = ttk.Scrollbar(list_frame, orient="vertical",
+                                              command=listbox.yview)
+                    scrollbar.pack(side="left", fill="y")
+                    listbox.config(yscrollcommand=scrollbar.set)
+                    for w in words:
+                        listbox.insert("end", w)
+
+                    def _add(e=add_entry, lb=listbox, v=var):
+                        text = e.get().strip()
+                        if not text:
+                            return
+                        existing = list(lb.get(0, "end"))
+                        for w in text.split():
+                            if w and w not in existing:
+                                lb.insert("end", w)
+                                existing.append(w)
+                        v.set(" ".join(lb.get(0, "end")))
+                        e.delete(0, "end")
+
+                    add_entry.bind("<Return>", lambda e, fn=_add: fn())
+                    ttk.Button(add_row, image=icons["add"], style="Icon.TButton",
+                               command=_add).pack(side="left", padx=(4, 0))
+
+                    def _delete(lb=listbox, v=var):
+                        sel = lb.curselection()
+                        if not sel:
+                            return
+                        lb.delete(sel[0])
+                        v.set(" ".join(lb.get(0, "end")))
+
+                    ttk.Button(list_frame, image=icons["del"], style="Icon.TButton",
+                               command=_delete).pack(side="left", padx=(4, 0))
 
                 if meta.get("help"):
                     ttk.Label(row, text=meta["help"], style="Help.TLabel").pack(side="left", padx=(8, 0))
