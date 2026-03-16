@@ -19,7 +19,7 @@ class Config:
     language: str = "ja"
     vad_filter: bool = True
     condition_on_previous_text: bool = True
-    initial_prompt: str = ""
+    initial_prompt: str = "よろしくお願いします。では、始めましょう。はい、わかりました。それでは、次に進みます。"
     hotwords: str = ""
 
     # Hotkey
