@@ -26,6 +26,15 @@ class Transcriber:
             device=self._config.device,
             compute_type=self._config.compute_type,
         )
+        self._warmup()
+
+    def _warmup(self) -> None:
+        """Run a dummy inference to initialize CUDA kernels."""
+        dummy = np.zeros(self._config.sample_rate, dtype=np.float32)  # 1 second of silence
+        segments, _ = self._model.transcribe(dummy, language=self._config.language)
+        for _ in segments:
+            pass
+        logger.info("Warmup inference completed")
 
     def transcribe(self, audio: np.ndarray) -> str:
         if self._model is None:
